@@ -181,7 +181,10 @@ namespace Consolonia.PlatformSupport
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 _sigwinchRegistration = PosixSignalRegistration.Create(PosixSignal.SIGWINCH,
-                    _ => { Task unused = DispatchInputAsync(ApplyTerminalResize); });
+                    _ =>
+                    {
+                        Task unused = DispatchInputAsync(ApplyTerminalResize);
+                    });
 
                 // A resize before this point had no handler.
                 ApplyTerminalResize();

@@ -44,9 +44,9 @@ namespace Consolonia.PlatformSupport
 
         private readonly CancellationTokenSource _gpmCancellation;
         private readonly bool _gpmInitialized;
+        private int _gpmFd;
 
         private Task _pumpTask;
-        private int _gpmFd;
 
         /// <summary>
         ///     Initialize GPM Monitor, throws InvalidOperationException on failure to connect.
@@ -71,16 +71,16 @@ namespace Consolonia.PlatformSupport
             _gpmInitialized = true;
         }
 
-        public void Start()
-        {
-            _pumpTask = Task.Run(() => PumpGpmEvents(_gpmCancellation.Token));
-        }
-
         /// <inheritdoc />
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        public void Start()
+        {
+            _pumpTask = Task.Run(() => PumpGpmEvents(_gpmCancellation.Token));
         }
 
         /// <summary>
