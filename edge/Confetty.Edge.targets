@@ -11,4 +11,9 @@
     <RepositoryUrl>https://github.com/confetty-sh/Consolonia</RepositoryUrl>
   </PropertyGroup>
 
+  <!-- The Gallery demo packs to ~176 MB and nothing consumes it from the feed. -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Consolonia.Gallery'">
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
 </Project>
