@@ -5,7 +5,6 @@ using Avalonia;
 using Avalonia.Input;
 using Avalonia.Input.Raw;
 using Avalonia.Threading;
-using Consolonia.Core.Helpers;
 using Consolonia.Core.InternalHelpers;
 
 namespace Consolonia.PlatformSupport
@@ -46,7 +45,7 @@ namespace Consolonia.PlatformSupport
         private readonly CancellationTokenSource _gpmCancellation;
         private readonly bool _gpmInitialized;
 
-        private readonly Task _pumpTask;
+        private Task _pumpTask;
         private int _gpmFd;
 
         /// <summary>
@@ -70,7 +69,11 @@ namespace Consolonia.PlatformSupport
                 throw new InvalidOperationException("Failed to open GPM connection");
 
             _gpmInitialized = true;
-            _pumpTask = PumpGpmEventsAsync(_gpmCancellation.Token);
+        }
+
+        public void Start()
+        {
+            _pumpTask = Task.Run(() => PumpGpmEvents(_gpmCancellation.Token));
         }
 
         /// <inheritdoc />
@@ -91,10 +94,8 @@ namespace Consolonia.PlatformSupport
         /// </remarks>
         public event Action<RawPointerEventType, Point, Vector?, RawInputModifiers> MouseEvent;
 
-        private async Task PumpGpmEventsAsync(CancellationToken cancellationToken)
+        private void PumpGpmEvents(CancellationToken cancellationToken)
         {
-            await Helper.WaitDispatcherInitialized();
-
             while (!cancellationToken.IsCancellationRequested)
                 if (Gpm.GetEvent(out GpmEvent gpmEvent) > 0)
                     ProcessGpmEvent(gpmEvent);
