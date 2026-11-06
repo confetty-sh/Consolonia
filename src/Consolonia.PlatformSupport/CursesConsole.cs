@@ -204,6 +204,11 @@ namespace Consolonia.PlatformSupport
         {
             Task _ = Task.Run(() =>
             {
+                int? escDelay = ConsoloniaPlatform.Settings?.EscDelay;
+                if (escDelay != null && Environment.GetEnvironmentVariable("ESCDELAY") == null &&
+                    !Curses.set_escdelay(escDelay.Value))
+                    _verboseLogger.Log2("set_escdelay isn't available");
+
                 _inputBuffer.StartReading();
 
                 while (!Disposed)
