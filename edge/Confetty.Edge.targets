@@ -1,0 +1,14 @@
+<Project>
+
+  <!-- Imported only by the edge workflow (CustomAfterMicrosoftCommonTargets), never by an ordinary
+       build. Renames the PACKAGE and nothing else: assemblies, namespaces and types stay exactly
+       as upstream ships them, so a consumer flips between official and edge by changing the
+       PackageReference id alone. Package-to-package dependencies follow, because pack reads each
+       referenced project's PackageId. -->
+  <PropertyGroup>
+    <PackageId>Confetty.$(MSBuildProjectName)</PackageId>
+    <Description>Unofficial edge build of $(MSBuildProjectName): upstream Consolonia plus fixes not yet released. Same assemblies and namespaces as the official package; switch back by referencing $(MSBuildProjectName).</Description>
+    <RepositoryUrl>https://github.com/confetty-sh/Consolonia</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>

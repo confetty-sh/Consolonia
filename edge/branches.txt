@@ -1,0 +1,7 @@
+# The fixes this branch carries, one per line:
+#   <owner>/<repo> <branch>    # the upstream PR it is waiting on
+# Each build merges every branch's latest tip, so review updates arrive by themselves. To add a fix,
+# merge its branch into edge (resolving any conflict) and add its line. Drop a line once its PR is
+# merged AND released upstream; when none are left, delete this fork.
+JohnCampionJr/Consolonia stack/resize-703      # https://github.com/consolonia/Consolonia/pull/717
+JohnCampionJr/Consolonia stack/escdelay-705    # https://github.com/consolonia/Consolonia/pull/714

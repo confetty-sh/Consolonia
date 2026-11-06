@@ -1,0 +1,90 @@
+# Publish Consolonia "edge": this branch (upstream plus the fixes in edge/branches.txt, with any
+# conflicts between them resolved once) brought up to date with upstream main and each fix's
+# latest tip, packed as Confetty.<package> and pushed to the private feedz.io feed.
+#
+# A STOP-GAP, not a maintained fork. The fixes are developed in hermitcrab-stack and proposed
+# upstream from JohnCampionJr/Consolonia; this repository only builds them early, and nothing here
+# is ever proposed upstream. Delete the fork once edge/branches.txt is empty.
+
+name: Edge
+
+on:
+  push:
+    branches: [ edge ]
+  # Rebuild by hand when upstream main or a fix branch moves.
+  workflow_dispatch:
+
+concurrency:
+  group: edge
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  edge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Merged at build time, not committed, so the run needs no write access. A conflict fails the
+      # run loudly (the feed keeps the last good build): resolve it by merging on this branch once.
+      - name: Bring in upstream main and the fixes' latest tips
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          { echo "### Sources"; echo; echo "- edge @ \`$(git rev-parse --short HEAD)\`"; } >> "$GITHUB_STEP_SUMMARY"
+          git fetch --quiet https://github.com/consolonia/Consolonia main
+          echo "- consolonia/Consolonia main @ \`$(git rev-parse --short FETCH_HEAD)\`" >> "$GITHUB_STEP_SUMMARY"
+          git merge --no-edit FETCH_HEAD
+          sed -e 's/#.*//' edge/branches.txt | while read -r repo branch; do
+            [ -z "$repo" ] && continue
+            git fetch --quiet "https://github.com/$repo" "$branch"
+            echo "- $repo $branch @ \`$(git rev-parse --short FETCH_HEAD)\`" >> "$GITHUB_STEP_SUMMARY"
+            git merge --no-edit FETCH_HEAD
+          done
+
+      - name: Version
+        run: |
+          set -euo pipefail
+          # One build past the upstream release this sits on, so edge sorts above it:
+          # upstream at 12.1.4.15 publishes 12.1.4.16-edge.<run>.
+          BASE=$(grep -oP '(?<=BUILD_VERSION=)\d+' .env)
+          echo "BUILD_VERSION=$((BASE + 1))" >> "$GITHUB_ENV"
+          echo "VERSION_SUFFIX=edge.${{ github.run_number }}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0'
+
+      - name: Pack
+        working-directory: src
+        run: >
+          dotnet pack Consolonia.sln -c Release -o ../artifacts
+          -p:BUILD_VERSION=$BUILD_VERSION --version-suffix $VERSION_SUFFIX
+          -p:ContinuousIntegrationBuild=true
+          -p:CustomAfterMicrosoftCommonTargets=$GITHUB_WORKSPACE/edge/Confetty.Edge.targets
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/*.nupkg
+
+      # --skip-duplicate so a re-run of a run that already pushed is a no-op rather than a failure.
+      - name: Push to feedz
+        env:
+          FEEDZ_API_KEY: ${{ secrets.FEEDZ_API_KEY }}
+        run: |
+          if [ -z "$FEEDZ_API_KEY" ]; then
+            echo "::error::FEEDZ_API_KEY is not set on this repository — the packages were built and uploaded as an artifact but not published."
+            exit 1
+          fi
+          dotnet nuget push artifacts/*.nupkg \
+            --source https://f.feedz.io/jcamp/packages/nuget/index.json \
+            --api-key "$FEEDZ_API_KEY" \
+            --skip-duplicate
+          echo "Published \`*.$BUILD_VERSION-$VERSION_SUFFIX\` to \`https://f.feedz.io/jcamp/packages/nuget/index.json\`" >> "$GITHUB_STEP_SUMMARY"
